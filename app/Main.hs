@@ -1,7 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import qualified Codec.Compression.GZip as GZip
+
 import Control.Monad
+
+import Data.Bool
 
 import Data.List (sort, transpose)
 
@@ -20,19 +24,20 @@ import qualified Data.ByteString.Lazy.Char8 as BL
 
 main :: IO ()
 main = do
-    [mode, csvIn, tyInFile, tmpOutFile, feitOutFile] <- getArgs
+    [mode, gzipOn, csvIn, tyInFile, tmpOutFile, feitOutFile] <- getArgs
     tys <- getCellTypes tyInFile
     -- The following CSV parser is not RFC compliant, but is practically
     -- compatible with our data sources.
+    let compress = bool id GZip.decompress (gzipOn == "t")
     csvCells
         <- case mode of
             "directory" -> do
                 files <- getDirectoryContents csvIn
                     >>= filterM doesFileExist
                     >>= mapM canonicalizePath 
-                mapM (fmap BL.lines . BL.readFile) (sort files)
+                mapM (fmap BL.lines . fmap compress . BL.readFile) (sort files)
             "file" ->
-                transpose <$> map (BL.split ',') <$> BL.lines <$> BL.readFile csvIn
+                transpose <$> map (BL.split ',') <$> BL.lines <$> compress <$> BL.readFile csvIn
     putTable
         (LazyTable
             (TableHeader 0x01 $ T.pack csvIn)

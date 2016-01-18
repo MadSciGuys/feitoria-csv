@@ -30,6 +30,7 @@ executable feitoria-csv-exe
                      , feitoria
                      , feitoria-csv
                      , text
+                     , zlib
   default-language:    Haskell2010
 
 test-suite feitoria-csv-test
