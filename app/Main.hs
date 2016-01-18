@@ -20,7 +20,7 @@ import qualified Data.ByteString.Lazy.Char8 as BL
 
 main :: IO ()
 main = do
-    [mode, size, csvIn, tyInFile, tmpOutFile, feitOutFile] <- getArgs
+    [mode, csvIn, tyInFile, tmpOutFile, feitOutFile] <- getArgs
     tys <- getCellTypes tyInFile
     -- The following CSV parser is not RFC compliant, but is practically
     -- compatible with our data sources.
@@ -36,7 +36,7 @@ main = do
     putTable
         (LazyTable
             (TableHeader 0x01 $ T.pack csvIn)
-            (map (uncurry $ toLazyColumn $ read size) $ zip tys csvCells))
+            (map (uncurry toLazyColumn) $ zip tys csvCells))
         tmpOutFile
         feitOutFile
 
@@ -51,10 +51,10 @@ getCellTypes file = map toCellType <$> lines <$> readFile file
         toCellType "string"   = TypeString
         toCellType _          = error "Invalid cell type seen in type file."
 
-toLazyColumn :: Word64 -> CellType -> [BL.ByteString] -> LazyColumn
-toLazyColumn size ty (x:xs) =
+toLazyColumn :: CellType -> [BL.ByteString] -> LazyColumn
+toLazyColumn ty (x:xs) =
     LazyColumn
-        (ColumnHeader (T.decodeUtf8 $ BL.toStrict x) ty size)
+        (ColumnHeader (T.decodeUtf8 $ BL.toStrict x) ty 0)
         (map (toCell ty) xs)
 
 toCell :: CellType -> BL.ByteString -> Maybe Cell
